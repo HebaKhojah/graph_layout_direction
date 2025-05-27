@@ -10,21 +10,21 @@ library(ggplot2)
 library(scales)
 library(readr)
 ```
-# Read data from the file
+Read data from the file
 ```{r}
 data <- read.csv("materials.csv", row.names = NULL, fileEncoding = "UTF-8")
 ```
-# Set seed for reproducibility
+Set seed for reproducibility
 ```{r}
-# set seed for reproducibility
+set seed for reproducibility
   seed_number <- 100 * data$item_no
   set.seed(seed_number)
 ```
-#Gerate random data points for y-axis labels
+Generate 7 random data points for the y-axis labels
 ```{r}
 generate_random_data <- function(trend, n = 7, min_val = 0, max_val = 100, type = "E", constant_range = NULL) {
   
-  # Generate random data based on the trend in material file (0 for decrease, 1 for increase, 2 for fluctuate)
+  # Generate random data based on the trend in the material file (0 for decrease, 1 for increase, 2 for fluctuate)
   data_points <- if (trend == 0) {
     sort(runif(n, min = min_val, max = max_val), decreasing = TRUE)  # Decreasing trend
   } else if (trend == 1) {
@@ -47,7 +47,7 @@ generate_random_data <- function(trend, n = 7, min_val = 0, max_val = 100, type 
     
     fluctuation <- runif(n, min = -1, max = 1)  # to control with fluctuation( small fluctuation)
     
-    # Apply fluctuations to the non constant values
+    # Apply fluctuations to the non-constant values
     for (i in 1:n) {
       if (!(i %in% constant_range)) {  # Apply fluctuation only to non constant points
         data_points[i] <- data_points[i] + fluctuation[i]
@@ -70,7 +70,7 @@ is_data <- data %>%
   ) %>%
   unnest(cols = c(data_points, x_labels))  # Unnest to separate the lists into individual rows
 ```
-# Define custom theme for plots
+# Define a custom theme for plots
 ```{r}
 my_theme <- function() {
   theme_minimal(base_size = 10) +
@@ -261,8 +261,5 @@ write.csv(conditionA, "conditionA.csv", fileEncoding = "UTF-8")
 write.csv(conditionB, "conditionB.csv",fileEncoding = "UTF-8")
 
 ```
-#to be removed later: write on expermint psy folder
-```{r}
-  
-```
+
 

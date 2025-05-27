@@ -28,13 +28,11 @@ Sb_data <- Sb_data %>%
     Session = as.character(Session)
   )
 
-
-
-#bind all the data frames into one data frame
+# Bind all data frames into one data frame
 merged_data <- bind_rows( Sa_data,Sb_data,En_data)
 
-#filter the data frame from data that were tested by researcher
-# and another 1 participant were excluded due to the extreme long time to 
+#filter the data frame from the data that was tested by the researcher
+# and another 1 participant was excluded due to the extremely long time to 
 # complete the study ( about more than two hours)
 raw_data <- merged_data %>%
   mutate( 
@@ -45,7 +43,7 @@ raw_data <- merged_data %>%
 
 ### Anonymisation and check submission
 
-#first, check submissions before annonymise the data.
+# First, check submissions before anonymising the data.
 
 #Check the accepted submissions and then anonymise the participant id
 # Create a new column 'answer_code' based on the responses
@@ -57,8 +55,8 @@ raw_data <- raw_data %>%
     TRUE ~ NA_integer_
   ))
 
-#compare the responses and the correct answers. 
-#correct_ans is column in the data represent (1, 2, 3) for correct answers
+# Compare the responses and the correct answers. 
+#correct_ans is a column in the data that represents (1, 2, 3) for correct answers
 raw_data <- raw_data %>%
   group_by(participant) %>%
   mutate(
@@ -77,7 +75,7 @@ attention_check <- raw_data %>%
     email = na_if(email_textbox.text, "")
   ) %>%
   group_by(participant)%>%
-  # Fill missing values within each participant group
+  # Fill in NA values within each participant group for name, nationality and email
   fill(nationality, name, email , .direction = "downup") %>%
   filter(type == "A") %>%  # Filter for attention check trials
   dplyr:: select(participant, name, email, iScorrect, nationality) %>%
@@ -97,7 +95,7 @@ passed <- attention_check %>%
   filter(submission == "Accepted") %>%
   dplyr:: select(participant, submission) 
 
-# Join passed participant data with raw_data
+# Join the passed participant data with raw data
 raw_data <- raw_data %>%
   inner_join(passed, by = "participant")
 
@@ -107,15 +105,15 @@ passed <- attention_check %>%
   filter(submission == "Accepted") %>%
   dplyr:: select (nationality, email,  name)
 
-#file for participants compensation for accepted submission
-#save outside the project, to be removed later.
+#File for participants' compensation upon accepted submission.
+#Save outside the project directory; to be deleted after the compensation process is completed.
 write_csv(passed, "Desktop/Compensations.csv")          
 
 #exclude the name and email for anonymisation
 raw_data <- raw_data %>%
    select( - name_textbox.text, -email_textbox.text)
 
-# Second, anonymise the participants ids of the accpeted submissions
+# Second, anonymise the participants' IDs of the accepted submissions
 anonymised <- raw_data %>%
   group_by(participant) %>%
   mutate(PID = cur_group_id())

@@ -207,37 +207,14 @@ gender <- function(data) {
 }
 gender_summary <- gender(data_tidy)
 
+# save the file to be ready for modelling 
 write_csv(data_tidy,"data/data_tidy.csv")
+
 # Check for missing values
 colSums(is.na(data_tidy))
 
 # View summary statistics
 summary(data_tidy)
 
-
-
-library(ggplot2)
-ggplot(data_tidy, aes(x = reaction_t)) + 
-  geom_histogram() +
-  theme_minimal()
-
-############################################################
-
-#missing age data (3 missing values)
-age_summary <- data_tidy %>%
-  group_by(pid) %>%
-  summarise(
-    age= ifelse(all(is.na(age)),
-                median(data_tidy$age, na.rm = TRUE),  
-                median(age, na.rm = TRUE)) 
-  )
-data_tidy <- data_tidy %>% 
-  select (- age) %>%
-  left_join(age_summary, by = "pid") 
-
-data_tidy %>%
-  group_by(lang_group) %>%
-  distinct(pid, .keep_all = TRUE) %>%
-  select(pid, trials_st)
 
 

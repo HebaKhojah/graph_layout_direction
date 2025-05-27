@@ -1,0 +1,266 @@
+
+
+```{r}
+# Load necessary libraries
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(readr)
+```
+# Read data from the file
+```{r}
+data <- read.csv("materials.csv", row.names = NULL, fileEncoding = "UTF-8")
+```
+# Set seed for reproducibility
+```{r}
+# set seed for reproducibility
+  seed_number <- 100 * data$item_no
+  set.seed(seed_number)
+```
+#Gerate random data points for y-axis labels
+```{r}
+generate_random_data <- function(trend, n = 7, min_val = 0, max_val = 100, type = "E", constant_range = NULL) {
+  
+  # Generate random data based on the trend in material file (0 for decrease, 1 for increase, 2 for fluctuate)
+  data_points <- if (trend == 0) {
+    sort(runif(n, min = min_val, max = max_val), decreasing = TRUE)  # Decreasing trend
+  } else if (trend == 1) {
+    sort(runif(n, min = min_val, max = max_val))  # Increasing trend
+  } else {
+    runif(n, min = min_val, max = max_val)  # Random trend
+  }
+  
+  # Filler graphs to be fluctuation trend with constant range in the middle
+  # Add constant section if type is "F"
+  if (type == "F") {
+    if (is.null(constant_range)) {
+      constant_range <- 4:(n-2)  #to keep the middle points constant (4th and 5th point)
+    }
+    # Set the constant section to a fixed value
+    constant_value <- round(mean(c(min_val, max_val)))
+    
+    # Keep the data constant by replacing the values in the specified range
+    data_points[constant_range] <- constant_value
+    
+    fluctuation <- runif(n, min = -1, max = 1)  # to control with fluctuation( small fluctuation)
+    
+    # Apply fluctuations to the non constant values
+    for (i in 1:n) {
+      if (!(i %in% constant_range)) {  # Apply fluctuation only to non constant points
+        data_points[i] <- data_points[i] + fluctuation[i]
+      }
+    }
+    # Ensure all data points remain within the specified min and max values
+    data_points[data_points < min_val] <- min_val
+    data_points[data_points > max_val] <- max_val
+  }
+  return(data_points)
+}
+```
+# Ensure x_labels is in proper format for plotting
+```{r}
+is_data <- data %>%
+  rowwise() %>%  # Process each row individually
+  mutate(
+    data_points = list(generate_random_data(trend, n = 7, min_val = min, max_val = max, type = type)), 
+    x_labels = strsplit(gsub("\\s|'", "", as.character(x_labels)), ",")  # Split x_labels into a list and remove any white space
+  ) %>%
+  unnest(cols = c(data_points, x_labels))  # Unnest to separate the lists into individual rows
+```
+# Define custom theme for plots
+```{r}
+my_theme <- function() {
+  theme_minimal(base_size = 10) +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 2),
+      panel.background = element_blank(),
+      plot.background = element_rect(color = "white"),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.ticks.x = element_line(),
+      axis.ticks.y = element_line(),
+     # plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      axis.text.y = element_text(size = 16, face ="bold"),
+      axis.text.x = element_text(size = 16, face ="bold"),
+      axis.title.y.left  = element_text(size = 18, angle = 90,  vjust = 6 ),
+      axis.title.y.right = element_text(size = 18, angle = 90 , vjust = -3),
+      axis.title.x = element_text(size = 18, vjust = 0.5),
+      plot.margin = margin(l=0.75,r=0.75,t=0.5,b=0.25, unit ="cm"),
+     aspect.ratio = 3 / 4 ,
+    )
+}
+```
+# Function to create line graph
+```{r}
+create_line_graph_LTR <- function(data_row) {
+  # Ensure x_labels are unique before converting to factor
+  data_row$x_labels <- factor(data_row$x_labels, levels = unique(data_row$x_labels))
+  
+  # Create and return the line plot
+  ggplot(data_row, aes(x = x_labels, y = data_points, group = 1)) +
+    geom_line(linewidth = 2) +
+    geom_point(size = 2) +
+    labs(
+    #  title = data_row$title,
+      x = data_row$x_title,
+      y = data_row$y_title 
+    ) +
+    #  scale_x_continuous(breaks = c(1, 3, 5, 7), labels = data_row$x_labels[c(1, 3, 5, 7)]) +  # Show 1st, 3rd, 5th, and 7th x-labels
+    scale_y_continuous(
+    limits = c(data_row$y_min_limit[1], data_row$y_max_limit[1]),
+    breaks = seq(data_row$y_min_limit[1], data_row$y_max_limit[1], length.out = 5),  # 5 labels
+    labels = scales::number_format(accuracy = 1, big.mark = ",")  #for integer values 1000 and more   
+    ) +
+    my_theme()
+}
+
+create_line_graph_RTL <- function(data_row) {
+  # Ensure x_labels are unique before converting to factor
+  data_row$x_labels <- factor(data_row$x_labels, levels = rev(unique(data_row$x_labels)))
+  
+  # Create and return the line plot with RTL layout
+  ggplot(data_row, aes(x = x_labels, y = data_points, group = 1)) +
+   geom_line(linewidth = 2) +
+    geom_point(size = 2) +
+    labs(
+     # title = data_row$title,
+      x = data_row$x_title,
+      y = data_row$y_title 
+    ) +
+  #      scale_x_continuous(breaks = c(1, 3, 5, 7), labels = data_row$x_labels[c(7, 5, 3, 1)]) +  # Show 1st, 3rd, 5th, and 7th x-labels
+    scale_y_continuous(
+    limits = c(data_row$y_min_limit[1], data_row$y_max_limit[1]),
+    breaks = seq(data_row$y_min_limit[1], data_row$y_max_limit[1], length.out = 5),  # 5 labels
+    labels = scales::number_format(accuracy = 1, big.mark = ","),  # Forces integer for
+          #  labels = scales::number_format(accuracy = 1, big.mark = ","),
+      position = "right"  # Place the y-axis on the right for RTL layout
+    ) +
+    my_theme()
+}
+```
+# Create direction colunm and assign conditions direction (R and L) to each expermintal E
+```{r}
+# duplicate the row for each E item
+data <- data %>%
+  rbind(filter(data, type == "E")) %>%
+  arrange(item_no)%>%
+   mutate(
+    direc = case_when(
+      type == "E" ~ rep_len(c("R", "L"), length.out = nrow(.)),  # Alternates between "R" and "L"
+      type %in% c("F", "P", "A","i") ~ ""  # Sets empty string "" for "F", "P", "i" and "A" type of item
+    ),   plot_path = "")
+```
+# output the line graphs and save in dir
+```{r}
+dir.create("Plots", showWarnings = FALSE)
+
+for (i in unique(data$item_no)) {
+  data_subset <- is_data %>% filter(item_no == i)
+  
+  # to set the path of the plot: the direction based on type
+  direction <- ifelse(data_subset$type[1] == "E", "L_", "")
+  
+  # Generate file path for LTR graph
+  graph_path <- paste0("Plots/plot_", data_subset$item_no[1],"_", direction, data_subset$type[1], ".png")
+  
+  # Create LTR line graph
+  lineGraph_LTR <- create_line_graph_LTR(data_subset)
+  
+  # save LTR line graph with the created plot path
+  ggsave(graph_path, plot = lineGraph_LTR, width = 7, height = 5, units = "in", dpi = 100)
+  data$plot_path[data$item_no == i & data$direc != "R"] <- graph_path
+  
+  # If type is 'E', create and save RTL graph
+ if (data_subset$type[1] == "E") {
+    RTL_graph_path <- paste0("Plots/plot_", data_subset$item_no[1],"_R_",data_subset$type[1], ".png")
+    lineGraph_RTL <- create_line_graph_RTL(data_subset)
+    ggsave(RTL_graph_path, plot = lineGraph_RTL, width = 7, height = 5, units = "in", dpi = 100) 
+    data$plot_path[data$item_no == i & data$direc == "R"] <- RTL_graph_path 
+  }
+}
+```
+
+```{r}
+#prepare the practice, experimental lists, filler, attention check data
+practice <- data %>%
+  filter(type == "P")
+
+# take the first 6 filler items for list 1 and last 6 filler items for list 2 
+Flist1 <- data %>%
+  filter(type == "F") %>%
+  slice_head(n = 6) 
+Flist2 <- data %>%
+  filter(type == "F") %>%
+  slice_tail(n = 6) 
+
+# take the first 4 attention check items for list 1 and last 4 items for list 2 
+Alist1 <- data %>%
+  filter(type == "A") %>%
+  slice_head(n = 4) 
+Alist2 <- data %>%
+  filter(type == "A") %>%
+  slice_tail(n = 4) 
+
+#prepare E type items to the lists. rows in data (item_no) are duplicated. 
+Elist1 <- data %>% 
+  filter(type == "E") %>%
+  arrange(item_no, direc) %>% 
+  mutate(temp = rep(1:20, each = 2)) %>% #create temp column and generate sequence of 1 to 20 duplicate twice
+  filter(direc == case_when((temp %% 2) == 0 ~ "R", #filter the data according to even temp row with R
+                                (temp %% 2) != 0 ~ "L")) # and odd with L direction 
+# use anti_join to create a list that is the opposite of the one above
+Elist2 <- data %>%
+  filter(type == "E") %>%
+  arrange(item_no, direc) %>%
+  mutate(temp = rep(1:20, each = 2)) %>%
+  anti_join(Elist1) # removes all the rows from the data that are present in Elist1
+
+# F, A and E items in list1 and list 2
+list1 <- Elist1 %>%
+  select(- temp) %>% # remove temp column
+  rbind(Flist1, Alist1)
+list2 <- Elist2 %>%
+  select(- temp) %>%
+  rbind(Flist2, Alist2)
+
+list1 %>% group_by(direc) %>% summarise(n())
+list2 %>% group_by(direc) %>% summarise(n())
+
+# check no items appears in the same condition in both lists
+list1 %>% 
+  rbind(list2) %>%
+  select(item_no, direc) %>%
+  unique() %>%
+  nrow()
+list1 %>% 
+  rbind(list2) %>%
+  select(plot_path) %>%
+  unique() %>%
+  nrow()
+```
+
+
+Write on files
+```{r}
+# Save updated data with graph paths to CSV
+write.csv(data, "generatedPlots.csv", row.names = FALSE, fileEncoding = "UTF-8")
+
+write.csv(practice,"practice.csv", fileEncoding = "UTF-8")
+
+# write csv files for list1 and list2
+write.csv(list1,"list1.csv", fileEncoding = "UTF-8")
+write.csv(list2, "list2.csv", fileEncoding = "UTF-8")
+
+conditionA <- as_tibble(c("list1.csv", "list2.csv")) %>% rename("list" = "value")
+conditionB <- as_tibble(c("list2.csv", "list1.csv")) %>% rename("list" = "value")
+
+write.csv(conditionA, "conditionA.csv", fileEncoding = "UTF-8")
+write.csv(conditionB, "conditionB.csv",fileEncoding = "UTF-8")
+
+```
+#to be removed later: write on expermint psy folder
+```{r}
+  
+```
+

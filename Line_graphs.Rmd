@@ -1,4 +1,6 @@
-
+This script generates line graphs in both left-to-right (LTR) and right-to-left (RTL) orientations.
+It creates random data points to represent different trend types.
+Graph contexts and corresponding data points are loaded from a CSV file.
 
 ```{r}
 # Load necessary libraries

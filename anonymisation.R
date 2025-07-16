@@ -4,7 +4,7 @@ library(tidyverse)
 # anonymisation 
 
 
-#responses were downloaded from Pavloiva and renamed
+#responses were downloaded from Pavloiva as csv files and renamed
 En_data <- read_csv("alldata/En_data.csv")
 Sa_data <- read_csv("alldata/Sa_data.csv")
 Sb_data <- read_csv("alldata/Sb_data.csv")

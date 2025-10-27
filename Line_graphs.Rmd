@@ -16,7 +16,7 @@ data <- read.csv("materials.csv", row.names = NULL, fileEncoding = "UTF-8")
 ```
 Set seed for reproducibility
 ```{r}
-set seed for reproducibility
+#set seed for reproducibility
   seed_number <- 100 * data$item_no
   set.seed(seed_number)
 ```
